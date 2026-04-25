@@ -1,0 +1,316 @@
+{
+  "admins": {
+    "national": {
+      "passwordHash": "$2a$10$H0J0uGkw6IAxjMpnUIjsoOrxOjj6iZjbGvDB1LKtzSZr2m9/tmFeu",
+      "name": "Admin National"
+    },
+    "artibonite": {
+      "passwordHash": "$2a$10$8WeObHlHuO/XGxwLG9PwcuYUP9YMkIGaTlmgzeVdgJLvGOm/5Mv/G",
+      "name": "Admin Artibonite"
+    },
+    "centre": {
+      "passwordHash": "$2a$10$jVq.7KAsCV7zkiNwCzBu5u3pbIxRWLwPBre5qKExyiL9XS.56GLh6",
+      "name": "Admin Centre"
+    },
+    "grandanse": {
+      "passwordHash": "$2a$10$FWIL3AcGdPYMEUzJ.dOXzOshiL/GEVw9oWnJRYS6fHF/4wSg6Mnz2",
+      "name": "Admin Grand'Anse"
+    },
+    "nippes": {
+      "passwordHash": "$2a$10$5BGseYI2g3tNlScD7isroO.4lUPKJnXVdqOpTEgR8lV64qZMJ/TP2",
+      "name": "Admin Nippes"
+    },
+    "nord": {
+      "passwordHash": "$2a$10$U1L4fmYJajx2weUXOFQbDeKD5SKh4wKQTHPNeDJXL3rp/ERkQJn6G",
+      "name": "Admin Nord"
+    },
+    "nordest": {
+      "passwordHash": "$2a$10$IzDy5wD0z0xHPdIAhdhqk.10Wyzg069axJ5n2Jo9x9A7KDFf6xTiq",
+      "name": "Admin Nord-Est"
+    },
+    "nordouest": {
+      "passwordHash": "$2a$10$GeF6RexBfT3pS8.hU1B9LO8jkSEJ/z7J10IgvuLXwfQfowOfdHAWW",
+      "name": "Admin Nord-Ouest"
+    },
+    "ouest": {
+      "passwordHash": "$2a$10$EcuWalufR9ZXBmgDyLeSiuNbrNplB3la/0NWrUKHXk27K.dEtgA2C",
+      "name": "Admin Ouest"
+    },
+    "sud": {
+      "passwordHash": "$2a$10$iWLYkKNZi9o3EqfH8bnVC.Df975t8hOYJfDD4bvbAc1xNJCcdkDwa",
+      "name": "Admin Sud"
+    },
+    "sudest": {
+      "passwordHash": "$2a$10$cYLOqQJMNt2lvbT3ySQ4EOQkaccfYodwIYn4JwUnGRZ0l464PKIjq",
+      "name": "Admin Sud-Est"
+    }
+  },
+  "members": [
+    {
+      "code": "MHAH2024-JEAN01-OUST",
+      "nom": "Jean Pierre",
+      "dob": "1985-03-15",
+      "birthPlace": "Port-au-Prince",
+      "cin": "04-01-85-0001",
+      "email": "jean@email.com",
+      "phone": "+50937001234",
+      "address": "Pétion-Ville",
+      "dept": "Ouest",
+      "commune": "Pétion-Ville",
+      "status": "Fondateur",
+      "passwordHash": "$2a$10$jmpsI9uPvtJLMAdRPkOnT.ZWbxtJ/qee7wOv379tGMKUXaAPAGhb6",
+      "dateJoined": "2024-01-15",
+      "profession": "Ingénieur",
+      "sexe": "Masculin",
+      "notes": ""
+    },
+    {
+      "code": "MHAH2024-MARI02-NORD",
+      "nom": "Marie Claire",
+      "dob": "1990-07-22",
+      "birthPlace": "Cap-Haïtien",
+      "cin": "03-02-90-0034",
+      "email": "marie@email.com",
+      "phone": "+50938002345",
+      "address": "Cap-Haïtien",
+      "dept": "Nord",
+      "commune": "Cap-Haïtien",
+      "status": "d'honneur",
+      "passwordHash": "$2a$10$QIjI/l5rwQjcCzF.0wevJ.k2SV4.bvtm3N9dBIVB0PTojzaDjXQ8G",
+      "dateJoined": "2024-02-20",
+      "profession": "Médecin",
+      "sexe": "Féminin",
+      "notes": ""
+    },
+    {
+      "code": "MHAH2024-PAUL03-ARTI",
+      "nom": "Paul Antoine",
+      "dob": "1988-11-05",
+      "birthPlace": "Gonaïves",
+      "cin": "01-03-88-0078",
+      "email": "paul@email.com",
+      "phone": "+50936003456",
+      "address": "Gonaïves",
+      "dept": "Artibonite",
+      "commune": "Gonaïves",
+      "status": "Adhérent",
+      "passwordHash": "$2a$10$O.L3qNzjgrZq61e8AyVLkegTpPihntR88CpYfFeyN8TO7KIbbHgV.",
+      "dateJoined": "2024-03-10",
+      "profession": "Agriculteur",
+      "sexe": "Masculin",
+      "notes": ""
+    },
+    {
+      "code": "MHAH2024-ROSE04-SUD_",
+      "nom": "Rose Angèle",
+      "dob": "1992-05-18",
+      "birthPlace": "Les Cayes",
+      "cin": "09-04-92-0012",
+      "email": "rose@email.com",
+      "phone": "+50939004567",
+      "address": "Les Cayes",
+      "dept": "Sud",
+      "commune": "Les Cayes",
+      "status": "Fondateur",
+      "passwordHash": "$2a$10$c0OukkMZn0PSd25CSL8imuPxnjTgc2O38X7wGlZz4jCdFiXvVEomm",
+      "dateJoined": "2024-04-05",
+      "profession": "Avocate",
+      "sexe": "Féminin",
+      "notes": ""
+    },
+    {
+      "code": "MHAH2024-ALEX05-CENT",
+      "nom": "Alex Beaumont",
+      "dob": "1987-09-30",
+      "birthPlace": "Hinche",
+      "cin": "02-05-87-0056",
+      "email": "alex@email.com",
+      "phone": "+50934005678",
+      "address": "Hinche",
+      "dept": "Centre",
+      "commune": "Hinche",
+      "status": "d'honneur",
+      "passwordHash": "$2a$10$TkAzLutROXP4da.4FvNICeDq1nSy1OKvJfpldY7kGzUASRe2O.B6i",
+      "dateJoined": "2024-05-12",
+      "profession": "Comptable",
+      "sexe": "Masculin",
+      "notes": ""
+    },
+    {
+      "code": "MHAH2024-SOPH06-OUST",
+      "nom": "Sophie Delatour",
+      "dob": "1995-01-20",
+      "birthPlace": "Delmas",
+      "cin": "04-06-95-0090",
+      "email": "sophie@email.com",
+      "phone": "+50933006789",
+      "address": "Delmas",
+      "dept": "Ouest",
+      "commune": "Delmas",
+      "status": "Adhérent",
+      "passwordHash": "$2a$10$iKbA9vL5Q3yLOVtvteJFw.c7vL7WoCE.Z06OzAikIzXot9y9wqxeK",
+      "dateJoined": "2024-06-01",
+      "profession": "Enseignante",
+      "sexe": "Féminin",
+      "notes": ""
+    }
+  ],
+  "payments": [
+    {
+      "id": 1,
+      "memberCode": "MHAH2024-JEAN01-OUST",
+      "amount": 100,
+      "date": "2024-06-01",
+      "type": "Cotisation",
+      "note": "Annuel"
+    },
+    {
+      "id": 2,
+      "memberCode": "MHAH2024-MARI02-NORD",
+      "amount": 50,
+      "date": "2024-07-15",
+      "type": "Don",
+      "note": "Vol."
+    }
+  ],
+  "chats": [
+    {
+      "id": 1,
+      "ch": "general",
+      "scope": "national",
+      "user": "Admin National",
+      "role": "admin",
+      "msg": "Bienvenue à tous les membres MHAH! 🇭🇹",
+      "time": "2024-09-01T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "ch": "dept_Ouest",
+      "scope": "Ouest",
+      "user": "Admin Ouest",
+      "role": "admin",
+      "msg": "Message pour les membres de l'Ouest uniquement",
+      "time": "2024-09-02T11:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "ch": "annonces",
+      "scope": "national",
+      "user": "Admin National",
+      "role": "admin",
+      "msg": "📢 Prochaine réunion le 15 octobre",
+      "time": "2024-09-03T09:00:00.000Z"
+    }
+  ],
+  "requests": [],
+  "moncash": [
+    {
+      "id": "MC1A",
+      "memberCode": "MHAH2024-JEAN01-OUST",
+      "phone": "+50937001234",
+      "amount": 500,
+      "type": "Mensuelle",
+      "status": "completed",
+      "date": "2024-08-01T14:30:00Z",
+      "note": "",
+      "ref": "TXN1"
+    }
+  ],
+  "zelle": [
+    {
+      "id": "ZL1A",
+      "memberCode": "MHAH2024-JEAN01-OUST",
+      "amount": 25,
+      "type": "Mensuelle",
+      "status": "completed",
+      "date": "2024-08-10T11:00:00Z",
+      "note": "",
+      "ref": "ZR1",
+      "senderName": "Jean Pierre",
+      "senderBank": "Chase"
+    }
+  ],
+  "cards": [
+    {
+      "id": "CB1A",
+      "memberCode": "MHAH2024-MARI02-NORD",
+      "amount": 50,
+      "type": "Don",
+      "method": "visa",
+      "status": "completed",
+      "date": "2024-09-01T10:00:00Z",
+      "note": "",
+      "cardLast4": "4242",
+      "cardHolder": "Marie Claire",
+      "ref": "CBREF1"
+    },
+    {
+      "id": "CB2B",
+      "memberCode": "MHAH2024-JEAN01-OUST",
+      "amount": 25,
+      "type": "Mensuelle",
+      "method": "paypal",
+      "status": "completed",
+      "date": "2024-09-15T14:00:00Z",
+      "note": "",
+      "cardLast4": "",
+      "cardHolder": "",
+      "ref": "PP1",
+      "paypalEmail": "jean@email.com"
+    }
+  ],
+  "pendingPayments": {
+    "MCMOBK2N1I2293C4": {
+      "createdAt": "2026-04-23T14:07:09.606Z",
+      "status": "pending",
+      "txRef": "MCMOBK2N1I2293C4",
+      "provider": "moncash",
+      "method": "moncash",
+      "memberCode": "MHAH2024-JEAN01-OUST",
+      "memberName": "Jean Pierre",
+      "amount": 1320,
+      "amountUsd": 10,
+      "amountHtg": 1320,
+      "currency": "HTG",
+      "paymentType": "cotisation",
+      "typeLabel": "Cotisation Mensuelle",
+      "paypalEmail": "jean@email.com",
+      "phone": "+50937001234"
+    },
+    "STRMOBK2ST6A17C55": {
+      "createdAt": "2026-04-23T14:07:17.082Z",
+      "status": "pending",
+      "txRef": "STRMOBK2ST6A17C55",
+      "provider": "stripe",
+      "method": "visa",
+      "memberCode": "MHAH2024-JEAN01-OUST",
+      "memberName": "Jean Pierre",
+      "amount": 10,
+      "amountUsd": 10,
+      "amountHtg": null,
+      "currency": "USD",
+      "paymentType": "cotisation",
+      "typeLabel": "Cotisation Mensuelle",
+      "paypalEmail": "jean@email.com",
+      "phone": "+50937001234"
+    },
+    "STRMOBK2ZZS1046AF": {
+      "createdAt": "2026-04-23T14:07:26.392Z",
+      "status": "pending",
+      "txRef": "STRMOBK2ZZS1046AF",
+      "provider": "stripe",
+      "method": "visa",
+      "memberCode": "MHAH2024-JEAN01-OUST",
+      "memberName": "Jean Pierre",
+      "amount": 10,
+      "amountUsd": 10,
+      "amountHtg": null,
+      "currency": "USD",
+      "paymentType": "cotisation",
+      "typeLabel": "Cotisation Mensuelle",
+      "paypalEmail": "jean@email.com",
+      "phone": "+50937001234"
+    }
+  },
+  "webhooks": []
+}

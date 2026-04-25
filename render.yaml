@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: mhah-fullstack
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: node server.js
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: APP_BASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: HTG_RATE
+        value: 132
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: MONCASH_MODE
+        value: sandbox
+      - key: MONCASH_CLIENT_ID
+        sync: false
+      - key: MONCASH_CLIENT_SECRET
+        sync: false

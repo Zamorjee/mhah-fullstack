@@ -160,7 +160,13 @@
   }
 
   doAdmLogin = async function(){
-    if(!apiEnabled()) return originalDoAdmLogin();
+    if(!apiEnabled()) {
+      console.error('API indisponible');
+      if(typeof showE === 'function') showE('lErr');
+      E('lErr').textContent = '❌ API indisponible, connexion requise';
+      setTimeout(function(){ if(typeof hideE === 'function') hideE('lErr'); }, 4000);
+      return;
+    }
     try {
       await handleLogin('admin', { role: E('lRole').value, password: E('lPw').value });
     } catch(err){
@@ -173,7 +179,13 @@
   };
 
   doMemLogin = async function(){
-    if(!apiEnabled()) return originalDoMemLogin();
+    if(!apiEnabled()) {
+      console.error('API indisponible');
+      E('mlE').textContent = '❌ API indisponible, connexion requise';
+      if(typeof showE === 'function') showE('mlE');
+      setTimeout(function(){ if(typeof hideE === 'function') hideE('mlE'); }, 4000);
+      return;
+    }
     try {
       await handleLogin('member', { code: E('mlC').value.trim(), password: E('mlP').value });
     } catch(err){
@@ -190,7 +202,11 @@
   };
 
   doCP = async function(){
-    if(!apiEnabled() || !getToken()) return originalDoCP();
+    if(!apiEnabled() || !getToken()){
+      console.error('Connexion requise pour changer le mot de passe');
+      toast('Connexion requise', 'error');
+      return;
+    }
     try {
       await apiRequest('/api/member/change-password', {
         method: 'POST',
@@ -316,28 +332,36 @@
   launchSelectedPayment = async function(amount, typeLabel, method){
     if(typeof hideM === 'function') hideM('mStripe');
     var member = getCurrentMemberRecordSafe();
+    if(!apiEnabled() || !getToken() || !member){
+      console.error('Connexion requise pour lancer le paiement');
+      toast('Connexion requise', 'error');
+      return;
+    }
     if(method === 'moncash'){
-      if(apiEnabled() && getToken() && member){
-        try {
-          await createHostedPayment('moncash', amount, typeLabel, member.code);
-          return;
-        } catch(err){
-          console.error(err);
-          toast('ℹ️ MonCash hébergé indisponible, formulaire manuel affiché.', 'info');
-        }
+      try {
+        await createHostedPayment('moncash', amount, typeLabel, member.code);
+      } catch(err){
+        console.error(err);
+        toast('❌ ' + err.message, 'error');
       }
-      if(typeof qMC === 'function') return qMC(amount ? Math.round((amount * RATE) * 100) / 100 : 0, typeLabel);
       return;
     }
     if(method === 'zelle'){
-      if(typeof qZ === 'function') return qZ(amount || 0, typeLabel);
+      console.error('Connexion requise pour Zelle');
+      toast('Connexion requise', 'error');
       return;
     }
     if(method === 'paypal' || method === 'visa' || method === 'mastercard' || method === 'stripe'){
-      if(typeof qCB === 'function') return qCB(amount || 0, typeLabel, method);
+      try {
+        await createHostedPayment(method, amount, typeLabel, member.code);
+      } catch(err){
+        console.error(err);
+        toast('❌ ' + err.message, 'error');
+      }
       return;
     }
-    if(originalLaunchSelectedPayment) return originalLaunchSelectedPayment(amount, typeLabel, method);
+    console.error('Méthode de paiement non autorisée');
+    toast('Méthode de paiement non autorisée', 'error');
   };
 
   function openPaymentMethodSelector(amount, typeLabel){
@@ -402,7 +426,11 @@
   };
 
   processStripePayment = async function(packageId, amount, customLabel){
-    if(!apiEnabled() || !getToken()) return originalProcessStripePayment(packageId, amount, customLabel);
+    if(!apiEnabled() || !getToken()){
+      console.error('Connexion requise pour le paiement Stripe');
+      toast('Connexion requise', 'error');
+      return;
+    }
     const member = getCurrentMemberRecordSafe();
     if(!member){ toast('Veuillez vous connecter', 'error'); return; }
     try {
@@ -414,7 +442,11 @@
   };
 
   sCB = async function(){
-    if(!apiEnabled() || !getToken()) return originalSCB();
+    if(!apiEnabled() || !getToken()){
+      console.error('Connexion requise pour les paiements par carte');
+      toast('Connexion requise', 'error');
+      return;
+    }
     var memberCode = E('cb1').value.trim();
     var amount = parseFloat(E('cb2').value);
     var method = E('cbMethod').value;
@@ -429,7 +461,8 @@
       }
       return;
     }
-    return originalSCB();
+    console.error('Méthode de paiement inconnue ou non autorisée');
+    toast('Méthode de paiement non autorisée', 'error');
   };
 
   async function saveManualPayment(provider, status){
@@ -452,7 +485,11 @@
   }
 
   sMC = async function(status){
-    if(!apiEnabled() || !getToken()) return originalSMC(status);
+    if(!apiEnabled() || !getToken()){
+      console.error('Connexion requise pour MonCash');
+      toast('Connexion requise', 'error');
+      return;
+    }
     try {
       await saveManualPayment('moncash', status);
     } catch(err){
@@ -462,7 +499,11 @@
   };
 
   sZ = async function(status){
-    if(!apiEnabled() || !getToken()) return originalSZ(status);
+    if(!apiEnabled() || !getToken()){
+      console.error('Connexion requise pour Zelle');
+      toast('Connexion requise', 'error');
+      return;
+    }
     try {
       await saveManualPayment('zelle', status);
     } catch(err){
@@ -483,7 +524,7 @@
     const orderId = params.get('token') || params.get('order_id') || moncashOrderId;
     const shouldVerifyMoncash = provider === 'moncash' && (transactionId || moncashOrderId);
     if(!apiEnabled() || !getToken() || ((!success && !cancelled) && !shouldVerifyMoncash)){
-      return originalCheckStripeReturn();
+      return;
     }
     try {
       if((success === 'true' && txRef) || shouldVerifyMoncash){
@@ -516,8 +557,8 @@
     if(typeof checkOnlineStatus === 'function') checkOnlineStatus();
     const restored = await restoreServerSession();
     if(!restored){
-      const hasLocal = originalCheckS();
-      if(hasLocal) await syncDataAfterLocalSession();
+      localStorage.removeItem(TOKEN_KEY);
+      return;
     }
     await checkStripeReturn();
   }

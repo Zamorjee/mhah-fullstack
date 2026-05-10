@@ -9,12 +9,24 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const Stripe = require('stripe');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
+const APP_BASE_URL = process.env.APP_BASE_URL || `https://mhah-fullstack.onrender.com`;
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-now';
 const HTG_RATE = Number(process.env.HTG_RATE || 132);
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('Supabase configuration missing. Please set SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY environment variables.');
+  process.exit(1);
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -36,8 +48,361 @@ const MONCASH_GATEWAY_BASE = MONCASH_MODE === 'live'
   : 'https://sandbox.moncashbutton.digicelgroup.com/Moncash-middleware';
 
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
-const DB_FILE = path.join(__dirname, 'data', 'db.json');
 const RETURN_PATHS = { stripe: '/payment-return/stripe', paypal: '/payment-return/paypal', moncash: '/payment-return/moncash' };
+
+async function getAdmins() {
+  const { data, error } = await supabase.from('admins').select('*');
+  if (error) throw error;
+  return data.reduce((acc, admin) => {
+    acc[admin.role] = { passwordHash: admin.password_hash, name: admin.name };
+    return acc;
+  }, {});
+}
+
+async function getMembers() {
+  const { data, error } = await supabase.from('members').select('*');
+  if (error) throw error;
+  return data.map(member => ({
+    code: member.code,
+    nom: member.nom,
+    dob: member.dob,
+    birthPlace: member.birth_place,
+    cin: member.cin,
+    email: member.email,
+    phone: member.phone,
+    address: member.address,
+    dept: member.dept,
+    commune: member.commune,
+    status: member.status,
+    passwordHash: member.password_hash,
+    dateJoined: member.date_joined,
+    profession: member.profession,
+    sexe: member.sexe,
+    notes: member.notes
+  }));
+}
+
+async function getPayments() {
+  const { data, error } = await supabase.from('payments').select('*');
+  if (error) throw error;
+  return data.map(payment => ({
+    id: payment.id,
+    memberCode: payment.member_code,
+    amount: payment.amount,
+    date: payment.date,
+    type: payment.type,
+    note: payment.note
+  }));
+}
+
+async function getChats() {
+  const { data, error } = await supabase.from('chats').select('*');
+  if (error) throw error;
+  return data.map(chat => ({
+    id: chat.id,
+    ch: chat.ch,
+    scope: chat.scope,
+    user: chat.username,
+    role: chat.role,
+    msg: chat.msg,
+    time: chat.time
+  }));
+}
+
+async function getRequests() {
+  const { data, error } = await supabase.from('requests').select('*');
+  if (error) throw error;
+  return data;
+}
+
+async function getMoncash() {
+  const { data, error } = await supabase.from('moncash').select('*');
+  if (error) throw error;
+  return data.map(item => ({
+    id: item.id,
+    memberCode: item.member_code,
+    phone: item.phone,
+    amount: item.amount,
+    type: item.type,
+    status: item.status,
+    date: item.date,
+    note: item.note,
+    ref: item.ref,
+    orderId: item.order_id,
+    payer: item.payer
+  }));
+}
+
+async function getZelle() {
+  const { data, error } = await supabase.from('zelle').select('*');
+  if (error) throw error;
+  return data.map(item => ({
+    id: item.id,
+    memberCode: item.member_code,
+    amount: item.amount,
+    type: item.type,
+    status: item.status,
+    date: item.date,
+    note: item.note,
+    ref: item.ref,
+    senderName: item.sender_name,
+    senderBank: item.sender_bank
+  }));
+}
+
+async function getCards() {
+  const { data, error } = await supabase.from('cards').select('*');
+  if (error) throw error;
+  return data.map(item => ({
+    id: item.id,
+    memberCode: item.member_code,
+    amount: item.amount,
+    type: item.type,
+    method: item.method,
+    status: item.status,
+    date: item.date,
+    note: item.note,
+    ref: item.ref,
+    cardLast4: item.card_last4,
+    cardHolder: item.card_holder,
+    sessionId: item.session_id,
+    orderId: item.order_id,
+    paypalEmail: item.paypal_email
+  }));
+}
+
+async function getPendingPayments() {
+  const { data, error } = await supabase.from('pending_payments').select('*');
+  if (error) throw error;
+  return data.reduce((acc, payment) => {
+    acc[payment.tx_ref] = {
+      txRef: payment.tx_ref,
+      provider: payment.provider,
+      method: payment.method,
+      memberCode: payment.member_code,
+      memberName: payment.member_name,
+      amount: payment.amount,
+      amountUsd: payment.amount_usd,
+      amountHtg: payment.amount_htg,
+      currency: payment.currency,
+      paymentType: payment.payment_type,
+      typeLabel: payment.type_label,
+      paypalEmail: payment.paypal_email,
+      phone: payment.phone,
+      createdAt: payment.created_at,
+      status: payment.status
+    };
+    return acc;
+  }, {});
+}
+
+async function getWebhooks() {
+  const { data, error } = await supabase.from('webhooks').select('*');
+  if (error) throw error;
+  return data.map(webhook => ({
+    provider: webhook.provider,
+    eventId: webhook.event_id,
+    type: webhook.type,
+    receivedAt: webhook.received_at
+  }));
+}
+
+async function readDb() {
+  try {
+    const [admins, members, payments, chats, requests, moncash, zelle, cards, pendingPayments, webhooks] = await Promise.all([
+      getAdmins(),
+      getMembers(),
+      getPayments(),
+      getChats(),
+      getRequests(),
+      getMoncash(),
+      getZelle(),
+      getCards(),
+      getPendingPayments(),
+      getWebhooks()
+    ]);
+    return {
+      admins,
+      members,
+      payments,
+      chats,
+      requests,
+      moncash,
+      zelle,
+      cards,
+      pendingPayments,
+      webhooks
+    };
+  } catch (error) {
+    console.error('Error reading from database:', error);
+    throw error;
+  }
+}
+
+async function writeDb(db) {
+  try {
+    // Update admins
+    if (db.admins) {
+      await supabase.from('admins').delete().neq('role', ''); // Clear table
+      const adminsData = Object.entries(db.admins).map(([role, admin]) => ({
+        role,
+        password_hash: admin.passwordHash,
+        name: admin.name
+      }));
+      await supabase.from('admins').insert(adminsData);
+    }
+
+    // Update members
+    if (db.members) {
+      await supabase.from('members').delete().neq('code', ''); // Clear table
+      const membersData = db.members.map(member => ({
+        code: member.code,
+        nom: member.nom,
+        dob: member.dob,
+        birth_place: member.birthPlace,
+        cin: member.cin,
+        email: member.email,
+        phone: member.phone,
+        address: member.address,
+        dept: member.dept,
+        commune: member.commune,
+        status: member.status,
+        password_hash: member.passwordHash,
+        date_joined: member.dateJoined,
+        profession: member.profession,
+        sexe: member.sexe,
+        notes: member.notes
+      }));
+      await supabase.from('members').insert(membersData);
+    }
+
+    // Update payments
+    if (db.payments) {
+      await supabase.from('payments').delete().neq('id', 0); // Clear table
+      await supabase.from('payments').insert(db.payments.map(payment => ({
+        id: payment.id,
+        member_code: payment.memberCode,
+        amount: payment.amount,
+        date: payment.date,
+        type: payment.type,
+        note: payment.note
+      })));
+    }
+
+    // Update chats
+    if (db.chats) {
+      await supabase.from('chats').delete().neq('id', 0); // Clear table
+      await supabase.from('chats').insert(db.chats.map(chat => ({
+        id: chat.id,
+        ch: chat.ch,
+        scope: chat.scope,
+        username: chat.user,
+        role: chat.role,
+        msg: chat.msg,
+        time: chat.time
+      })));
+    }
+
+    // Update requests
+    if (db.requests) {
+      await supabase.from('requests').delete().neq('id', ''); // Clear table
+      await supabase.from('requests').insert(db.requests);
+    }
+
+    // Update moncash
+    if (db.moncash) {
+      await supabase.from('moncash').delete().neq('id', ''); // Clear table
+      await supabase.from('moncash').insert(db.moncash.map(item => ({
+        id: item.id,
+        member_code: item.memberCode,
+        phone: item.phone,
+        amount: item.amount,
+        type: item.type,
+        status: item.status,
+        date: item.date,
+        note: item.note,
+        ref: item.ref,
+        order_id: item.orderId,
+        payer: item.payer
+      })));
+    }
+
+    // Update zelle
+    if (db.zelle) {
+      await supabase.from('zelle').delete().neq('id', ''); // Clear table
+      await supabase.from('zelle').insert(db.zelle.map(item => ({
+        id: item.id,
+        member_code: item.member_code,
+        amount: item.amount,
+        type: item.type,
+        status: item.status,
+        date: item.date,
+        note: item.note,
+        ref: item.ref,
+        sender_name: item.senderName,
+        sender_bank: item.senderBank
+      })));
+    }
+
+    // Update cards
+    if (db.cards) {
+      await supabase.from('cards').delete().neq('id', ''); // Clear table
+      await supabase.from('cards').insert(db.cards.map(item => ({
+        id: item.id,
+        member_code: item.member_code,
+        amount: item.amount,
+        type: item.type,
+        method: item.method,
+        status: item.status,
+        date: item.date,
+        note: item.note,
+        ref: item.ref,
+        card_last4: item.cardLast4,
+        card_holder: item.cardHolder,
+        session_id: item.sessionId,
+        order_id: item.orderId,
+        paypal_email: item.paypalEmail
+      })));
+    }
+
+    // Update pending payments
+    if (db.pendingPayments) {
+      await supabase.from('pending_payments').delete().neq('tx_ref', ''); // Clear table
+      const pendingData = Object.values(db.pendingPayments).map(payment => ({
+        tx_ref: payment.txRef,
+        provider: payment.provider,
+        method: payment.method,
+        member_code: payment.memberCode,
+        member_name: payment.memberName,
+        amount: payment.amount,
+        amount_usd: payment.amountUsd,
+        amount_htg: payment.amountHtg,
+        currency: payment.currency,
+        payment_type: payment.paymentType,
+        type_label: payment.typeLabel,
+        paypal_email: payment.paypalEmail,
+        phone: payment.phone,
+        created_at: payment.createdAt,
+        status: payment.status
+      }));
+      await supabase.from('pending_payments').insert(pendingData);
+    }
+
+    // Update webhooks
+    if (db.webhooks) {
+      await supabase.from('webhooks').delete().neq('event_id', ''); // Clear table
+      await supabase.from('webhooks').insert(db.webhooks.map(webhook => ({
+        provider: webhook.provider,
+        event_id: webhook.eventId,
+        type: webhook.type,
+        received_at: webhook.receivedAt
+      })));
+    }
+  } catch (error) {
+    console.error('Error writing to database:', error);
+    throw error;
+  }
+}
 
 function buildAppUrl(pathname, params){
   const url = new URL(pathname, APP_BASE_URL.endsWith('/') ? APP_BASE_URL : APP_BASE_URL + '/');
@@ -80,69 +445,129 @@ function hashIfNeeded(value){
   return value.startsWith('$2') ? value : bcrypt.hashSync(value, 10);
 }
 
-function seedDb(){
-  if(fs.existsSync(DB_FILE)) return;
-  const db = {
-    admins: {
-      national: { passwordHash: hashIfNeeded('admin2026'), name: 'Admin National' },
-      artibonite: { passwordHash: hashIfNeeded('arti2026'), name: 'Admin Artibonite' },
-      centre: { passwordHash: hashIfNeeded('cent2026'), name: 'Admin Centre' },
-      grandanse: { passwordHash: hashIfNeeded('gran2026'), name: "Admin Grand'Anse" },
-      nippes: { passwordHash: hashIfNeeded('nipp2026'), name: 'Admin Nippes' },
-      nord: { passwordHash: hashIfNeeded('nord2026'), name: 'Admin Nord' },
-      nordest: { passwordHash: hashIfNeeded('nest2026'), name: 'Admin Nord-Est' },
-      nordouest: { passwordHash: hashIfNeeded('noue2026'), name: 'Admin Nord-Ouest' },
-      ouest: { passwordHash: hashIfNeeded('oues2026'), name: 'Admin Ouest' },
-      sud: { passwordHash: hashIfNeeded('sud_2026'), name: 'Admin Sud' },
-      sudest: { passwordHash: hashIfNeeded('sest2026'), name: 'Admin Sud-Est' }
-    },
-    members: [
-      { code:'MHAH2024-JEAN01-OUST', nom:'Jean Pierre', dob:'1985-03-15', birthPlace:'Port-au-Prince', cin:'04-01-85-0001', email:'jean@email.com', phone:'+50937001234', address:'Pétion-Ville', dept:'Ouest', commune:'Pétion-Ville', status:'Fondateur', passwordHash:hashIfNeeded('password'), dateJoined:'2024-01-15', profession:'Ingénieur', sexe:'Masculin', notes:'' },
-      { code:'MHAH2024-MARI02-NORD', nom:'Marie Claire', dob:'1990-07-22', birthPlace:'Cap-Haïtien', cin:'03-02-90-0034', email:'marie@email.com', phone:'+50938002345', address:'Cap-Haïtien', dept:'Nord', commune:'Cap-Haïtien', status:"d'honneur", passwordHash:hashIfNeeded('password'), dateJoined:'2024-02-20', profession:'Médecin', sexe:'Féminin', notes:'' },
-      { code:'MHAH2024-PAUL03-ARTI', nom:'Paul Antoine', dob:'1988-11-05', birthPlace:'Gonaïves', cin:'01-03-88-0078', email:'paul@email.com', phone:'+50936003456', address:'Gonaïves', dept:'Artibonite', commune:'Gonaïves', status:'Adhérent', passwordHash:hashIfNeeded('password'), dateJoined:'2024-03-10', profession:'Agriculteur', sexe:'Masculin', notes:'' },
-      { code:'MHAH2024-ROSE04-SUD_', nom:'Rose Angèle', dob:'1992-05-18', birthPlace:'Les Cayes', cin:'09-04-92-0012', email:'rose@email.com', phone:'+50939004567', address:'Les Cayes', dept:'Sud', commune:'Les Cayes', status:'Fondateur', passwordHash:hashIfNeeded('password'), dateJoined:'2024-04-05', profession:'Avocate', sexe:'Féminin', notes:'' },
-      { code:'MHAH2024-ALEX05-CENT', nom:'Alex Beaumont', dob:'1987-09-30', birthPlace:'Hinche', cin:'02-05-87-0056', email:'alex@email.com', phone:'+50934005678', address:'Hinche', dept:'Centre', commune:'Hinche', status:"d'honneur", passwordHash:hashIfNeeded('password'), dateJoined:'2024-05-12', profession:'Comptable', sexe:'Masculin', notes:'' },
-      { code:'MHAH2024-SOPH06-OUST', nom:'Sophie Delatour', dob:'1995-01-20', birthPlace:'Delmas', cin:'04-06-95-0090', email:'sophie@email.com', phone:'+50933006789', address:'Delmas', dept:'Ouest', commune:'Delmas', status:'Adhérent', passwordHash:hashIfNeeded('password'), dateJoined:'2024-06-01', profession:'Enseignante', sexe:'Féminin', notes:'' }
-    ],
-    payments: [
-      { id:1, memberCode:'MHAH2024-JEAN01-OUST', amount:100, date:'2024-06-01', type:'Cotisation', note:'Annuel' },
-      { id:2, memberCode:'MHAH2024-MARI02-NORD', amount:50, date:'2024-07-15', type:'Don', note:'Vol.' }
-    ],
-    chats: [
-      { id:1, ch:'general', scope:'national', user:'Admin National', role:'admin', msg:'Bienvenue à tous les membres MHAH! 🇭🇹', time:new Date('2024-09-01T10:00:00Z').toISOString() },
-      { id:2, ch:'dept_Ouest', scope:'Ouest', user:'Admin Ouest', role:'admin', msg:'Message pour les membres de l\'Ouest uniquement', time:new Date('2024-09-02T11:00:00Z').toISOString() },
-      { id:3, ch:'annonces', scope:'national', user:'Admin National', role:'admin', msg:'📢 Prochaine réunion le 15 octobre', time:new Date('2024-09-03T09:00:00Z').toISOString() }
-    ],
-    requests: [],
-    moncash: [
-      { id:'MC1A', memberCode:'MHAH2024-JEAN01-OUST', phone:'+50937001234', amount:500, type:'Mensuelle', status:'completed', date:'2024-08-01T14:30:00Z', note:'', ref:'TXN1' }
-    ],
-    zelle: [
-      { id:'ZL1A', memberCode:'MHAH2024-JEAN01-OUST', amount:25, type:'Mensuelle', status:'completed', date:'2024-08-10T11:00:00Z', note:'', ref:'ZR1', senderName:'Jean Pierre', senderBank:'Chase' }
-    ],
-    cards: [
-      { id:'CB1A', memberCode:'MHAH2024-MARI02-NORD', amount:50, type:'Don', method:'visa', status:'completed', date:'2024-09-01T10:00:00Z', note:'', cardLast4:'4242', cardHolder:'Marie Claire', ref:'CBREF1' },
-      { id:'CB2B', memberCode:'MHAH2024-JEAN01-OUST', amount:25, type:'Mensuelle', method:'paypal', status:'completed', date:'2024-09-15T14:00:00Z', note:'', cardLast4:'', cardHolder:'', ref:'PP1', paypalEmail:'jean@email.com' }
-    ],
-    pendingPayments: {},
-    webhooks: []
-  };
-  writeDb(db);
+async function seedDb(){
+  try {
+    // Check if admins table has data
+    const { data: existingAdmins } = await supabase.from('admins').select('role').limit(1);
+    if (existingAdmins && existingAdmins.length > 0) return;
+
+    const adminsData = [
+      { role: 'national', password_hash: hashIfNeeded('admin2026'), name: 'Admin National' },
+      { role: 'artibonite', password_hash: hashIfNeeded('arti2026'), name: 'Admin Artibonite' },
+      { role: 'centre', password_hash: hashIfNeeded('cent2026'), name: 'Admin Centre' },
+      { role: 'grandanse', password_hash: hashIfNeeded('gran2026'), name: "Admin Grand'Anse" },
+      { role: 'nippes', password_hash: hashIfNeeded('nipp2026'), name: 'Admin Nippes' },
+      { role: 'nord', password_hash: hashIfNeeded('nord2026'), name: 'Admin Nord' },
+      { role: 'nordest', password_hash: hashIfNeeded('nest2026'), name: 'Admin Nord-Est' },
+      { role: 'nordouest', password_hash: hashIfNeeded('noue2026'), name: 'Admin Nord-Ouest' },
+      { role: 'ouest', password_hash: hashIfNeeded('oues2026'), name: 'Admin Ouest' },
+      { role: 'sud', password_hash: hashIfNeeded('sud_2026'), name: 'Admin Sud' },
+      { role: 'sudest', password_hash: hashIfNeeded('sest2026'), name: 'Admin Sud-Est' }
+    ];
+
+    const membersData = [
+      { code:'MHAH2024-JEAN01-OUST', nom:'Jean Pierre', dob:'1985-03-15', birth_place:'Port-au-Prince', cin:'04-01-85-0001', email:'jean@email.com', phone:'+50937001234', address:'Pétion-Ville', dept:'Ouest', commune:'Pétion-Ville', status:'Fondateur', password_hash:hashIfNeeded('password'), date_joined:'2024-01-15', profession:'Ingénieur', sexe:'Masculin', notes:'' },
+      { code:'MHAH2024-MARI02-NORD', nom:'Marie Claire', dob:'1990-07-22', birth_place:'Cap-Haïtien', cin:'03-02-90-0034', email:'marie@email.com', phone:'+50938002345', address:'Cap-Haïtien', dept:'Nord', commune:'Cap-Haïtien', status:"d'honneur", password_hash:hashIfNeeded('password'), date_joined:'2024-02-20', profession:'Médecin', sexe:'Féminin', notes:'' },
+      { code:'MHAH2024-PAUL03-ARTI', nom:'Paul Antoine', dob:'1988-11-05', birth_place:'Gonaïves', cin:'01-03-88-0078', email:'paul@email.com', phone:'+50936003456', address:'Gonaïves', dept:'Artibonite', commune:'Gonaïves', status:'Adhérent', password_hash:hashIfNeeded('password'), date_joined:'2024-03-10', profession:'Agriculteur', sexe:'Masculin', notes:'' },
+      { code:'MHAH2024-ROSE04-SUD_', nom:'Rose Angèle', dob:'1992-05-18', birth_place:'Les Cayes', cin:'09-04-92-0012', email:'rose@email.com', phone:'+50939004567', address:'Les Cayes', dept:'Sud', commune:'Les Cayes', status:'Fondateur', password_hash:hashIfNeeded('password'), date_joined:'2024-04-05', profession:'Avocate', sexe:'Féminin', notes:'' },
+      { code:'MHAH2024-ALEX05-CENT', nom:'Alex Beaumont', dob:'1987-09-30', birth_place:'Hinche', cin:'02-05-87-0056', email:'alex@email.com', phone:'+50934005678', address:'Hinche', dept:'Centre', commune:'Hinche', status:"d'honneur", password_hash:hashIfNeeded('password'), date_joined:'2024-05-12', profession:'Comptable', sexe:'Masculin', notes:'' },
+      { code:'MHAH2024-SOPH06-OUST', nom:'Sophie Delatour', dob:'1995-01-20', birth_place:'Delmas', cin:'04-06-95-0090', email:'sophie@email.com', phone:'+50933006789', address:'Delmas', dept:'Ouest', commune:'Delmas', status:'Adhérent', password_hash:hashIfNeeded('password'), date_joined:'2024-06-01', profession:'Enseignante', sexe:'Féminin', notes:'' }
+    ];
+
+    const paymentsData = [
+      { id:1, member_code:'MHAH2024-JEAN01-OUST', amount:100, date:'2024-06-01', type:'Cotisation', note:'Annuel' },
+      { id:2, member_code:'MHAH2024-MARI02-NORD', amount:50, date:'2024-07-15', type:'Don', note:'Vol.' }
+    ];
+
+    const chatsData = [
+      { id:1, ch:'general', scope:'national', username:'Admin National', role:'admin', msg:'Bienvenue à tous les membres MHAH! 🇭🇹', time:new Date('2024-09-01T10:00:00Z').toISOString() },
+      { id:2, ch:'dept_Ouest', scope:'Ouest', username:'Admin Ouest', role:'admin', msg:'Message pour les membres de l\'Ouest uniquement', time:new Date('2024-09-02T11:00:00Z').toISOString() },
+      { id:3, ch:'annonces', scope:'national', username:'Admin National', role:'admin', msg:'📢 Prochaine réunion le 15 octobre', time:new Date('2024-09-03T09:00:00Z').toISOString() }
+    ];
+
+    const moncashData = [
+      { id:'MC1A', member_code:'MHAH2024-JEAN01-OUST', phone:'+50937001234', amount:500, type:'Mensuelle', status:'completed', date:'2024-08-01T14:30:00Z', note:'', ref:'TXN1' }
+    ];
+
+    const zelleData = [
+      { id:'ZL1A', member_code:'MHAH2024-JEAN01-OUST', amount:25, type:'Mensuelle', status:'completed', date:'2024-08-10T11:00:00Z', note:'', ref:'ZR1', sender_name:'Jean Pierre', sender_bank:'Chase' }
+    ];
+
+    const cardsData = [
+      { id:'CB1A', member_code:'MHAH2024-MARI02-NORD', amount:50, type:'Don', method:'visa', status:'completed', date:'2024-09-01T10:00:00Z', note:'', card_last4:'4242', card_holder:'Marie Claire', ref:'CBREF1' },
+      { id:'CB2B', member_code:'MHAH2024-JEAN01-OUST', amount:25, type:'Mensuelle', method:'paypal', status:'completed', date:'2024-09-15T14:00:00Z', note:'', card_last4:'', card_holder:'', ref:'PP1', paypal_email:'jean@email.com' }
+    ];
+
+    await Promise.all([
+      supabase.from('admins').insert(adminsData),
+      supabase.from('members').insert(membersData),
+      supabase.from('payments').insert(paymentsData),
+      supabase.from('chats').insert(chatsData),
+      supabase.from('moncash').insert(moncashData),
+      supabase.from('zelle').insert(zelleData),
+      supabase.from('cards').insert(cardsData)
+    ]);
+
+    console.log('Database seeded successfully');
+  } catch (error) {
+    console.error('Error seeding database:', error);
+  }
 }
 
-function normalizeDb(){
-  const db = readDb();
-  let changed = false;
-  Object.keys(db.admins || {}).forEach((role) => {
-    const item = db.admins[role];
-    if(item.password && !item.passwordHash){ item.passwordHash = hashIfNeeded(item.password); delete item.password; changed = true; }
-    if(item.passwordHash && !item.passwordHash.startsWith('$2')){ item.passwordHash = hashIfNeeded(item.passwordHash); changed = true; }
-  });
-  (db.members || []).forEach((member) => {
-    if(member.password && !member.passwordHash){ member.passwordHash = hashIfNeeded(member.password); delete member.password; changed = true; }
-    if(member.passwordHash && !member.passwordHash.startsWith('$2')){ member.passwordHash = hashIfNeeded(member.passwordHash); changed = true; }
-  });
-  if(changed) writeDb(db);
+async function normalizeDb(){
+  try {
+    // Get all admins
+    const { data: admins, error: adminsError } = await supabase.from('admins').select('*');
+    if (adminsError) throw adminsError;
+
+    // Get all members
+    const { data: members, error: membersError } = await supabase.from('members').select('*');
+    if (membersError) throw membersError;
+
+    let changed = false;
+
+    // Normalize admin passwords
+    for (const admin of admins || []) {
+      if (admin.password && !admin.password_hash) {
+        const { error } = await supabase.from('admins').update({
+          password_hash: hashIfNeeded(admin.password)
+        }).eq('role', admin.role);
+        if (error) throw error;
+        changed = true;
+      }
+      if (admin.password_hash && !admin.password_hash.startsWith('$2')) {
+        const { error } = await supabase.from('admins').update({
+          password_hash: hashIfNeeded(admin.password_hash)
+        }).eq('role', admin.role);
+        if (error) throw error;
+        changed = true;
+      }
+    }
+
+    // Normalize member passwords
+    for (const member of members || []) {
+      if (member.password && !member.password_hash) {
+        const { error } = await supabase.from('members').update({
+          password_hash: hashIfNeeded(member.password)
+        }).eq('code', member.code);
+        if (error) throw error;
+        changed = true;
+      }
+      if (member.password_hash && !member.password_hash.startsWith('$2')) {
+        const { error } = await supabase.from('members').update({
+          password_hash: hashIfNeeded(member.password_hash)
+        }).eq('code', member.code);
+        if (error) throw error;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      console.log('Database normalized successfully');
+    }
+  } catch (error) {
+    console.error('Error normalizing database:', error);
+  }
 }
 
 function sanitizeMembers(members){
@@ -748,8 +1173,10 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-seedDb();
-normalizeDb();
-app.listen(PORT, () => {
-  console.log(`MHAH server running on ${APP_BASE_URL}`);
-});
+(async () => {
+  await seedDb();
+  await normalizeDb();
+  app.listen(PORT, () => {
+    console.log(`MHAH server running on ${APP_BASE_URL}`);
+  });
+})();

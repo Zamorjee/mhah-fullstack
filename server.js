@@ -433,11 +433,24 @@ function isMonCashConfigured(){ return looksConfigured(MONCASH_CLIENT_ID) && loo
 function paymentTypeLabelFromProvider(provider){ return provider === 'paypal' ? 'PayPal' : provider === 'moncash' ? 'MonCash' : 'Stripe'; }
 
 function readDb(){
-  return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+  // Retourne une structure vide - toutes les données viennent de Supabase
+  return {
+    admins: {},
+    members: [],
+    payments: [],
+    chats: [],
+    requests: [],
+    moncash: [],
+    zelle: [],
+    cards: [],
+    pendingPayments: {},
+    webhooks: []
+  };
 }
 
 function writeDb(db){
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+  // Pas de fichier local - tout est dans Supabase
+  // Cette fonction est un placeholder pour la compatibilité
 }
 
 function hashIfNeeded(value){
@@ -579,16 +592,39 @@ function sanitizeMembers(members){
   });
 }
 
-function buildSnapshot(db){
-  return {
-    members: sanitizeMembers(db.members || []),
-    payments: clone(db.payments || []),
-    chats: clone(db.chats || []),
-    requests: clone(db.requests || []),
-    moncash: clone(db.moncash || []),
-    zelle: clone(db.zelle || []),
-    cards: clone(db.cards || [])
-  };
+async function buildSnapshot(){
+  try {
+    const [membersRes, paymentsRes, chatsRes, requestsRes, moncashRes, zelleRes, cardsRes] = await Promise.all([
+      supabase.from('members').select('*'),
+      supabase.from('payments').select('*'),
+      supabase.from('chats').select('*'),
+      supabase.from('requests').select('*'),
+      supabase.from('moncash').select('*'),
+      supabase.from('zelle').select('*'),
+      supabase.from('cards').select('*')
+    ]);
+    
+    return {
+      members: sanitizeMembers(membersRes.data || []),
+      payments: clone(paymentsRes.data || []),
+      chats: clone(chatsRes.data || []),
+      requests: clone(requestsRes.data || []),
+      moncash: clone(moncashRes.data || []),
+      zelle: clone(zelleRes.data || []),
+      cards: clone(cardsRes.data || [])
+    };
+  } catch (error) {
+    console.error('Error building snapshot:', error);
+    return {
+      members: [],
+      payments: [],
+      chats: [],
+      requests: [],
+      moncash: [],
+      zelle: [],
+      cards: []
+    };
+  }
 }
 
 function signSession(session){
@@ -875,33 +911,62 @@ app.get('/api/payments/providers', authRequired, (req, res) => {
 });
 
 app.post('/api/auth/member/login', async (req, res) => {
-  const code = String(req.body.code || '').trim();
-  const password = String(req.body.password || '');
-  if(!code || !password) return res.status(400).json({ error: 'Code et mot de passe requis' });
-  const db = readDb();
-  const member = assertMemberExists(db, code);
-  if(!member) return res.status(404).json({ error: 'Code introuvable' });
-  const ok = member.passwordHash ? await bcrypt.compare(password, member.passwordHash) : password === member.password;
-  if(!ok) return res.status(401).json({ error: 'Mot de passe incorrect' });
-  const session = { type: 'member', role: 'member', code: member.code, name: member.nom };
-  res.json({ token: signSession(session), session, snapshot: buildSnapshot(db) });
+  try {
+    const code = String(req.body.code || '').trim();
+    const password = String(req.body.password || '');
+    if(!code || !password) return res.status(400).json({ error: 'Code et mot de passe requis' });
+    
+    // Récupère le membre depuis Supabase
+    const { data: members, error } = await supabase.from('members').select('*').eq('code', code).limit(1);
+    if(error) throw error;
+    
+    const member = members && members.length > 0 ? members[0] : null;
+    if(!member) return res.status(404).json({ error: 'Code introuvable' });
+    
+    const ok = member.password_hash ? await bcrypt.compare(password, member.password_hash) : password === member.password;
+    if(!ok) return res.status(401).json({ error: 'Mot de passe incorrect' });
+    
+    const session = { type: 'member', role: 'member', code: member.code, name: member.nom };
+    const snapshot = await buildSnapshot();
+    res.json({ token: signSession(session), session, snapshot });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Erreur de connexion' });
+  }
+});
 });
 
 app.post('/api/auth/admin/login', async (req, res) => {
-  const role = String(req.body.role || '').trim();
-  const password = String(req.body.password || '');
-  const db = readDb();
-  const admin = db.admins[role];
-  if(!admin) return res.status(404).json({ error: 'Rôle admin inconnu' });
-  const ok = admin.passwordHash ? await bcrypt.compare(password, admin.passwordHash) : password === admin.password;
-  if(!ok) return res.status(401).json({ error: 'Mot de passe incorrect' });
-  const session = { type: 'admin', role, name: admin.name || `Admin ${role}` };
-  res.json({ token: signSession(session), session, snapshot: buildSnapshot(db) });
+  try {
+    const role = String(req.body.role || '').trim();
+    const password = String(req.body.password || '');
+    
+    const { data: admins, error } = await supabase.from('admins').select('*').eq('role', role).limit(1);
+    if(error) throw error;
+    
+    const admin = admins && admins.length > 0 ? admins[0] : null;
+    if(!admin) return res.status(404).json({ error: 'Rôle admin inconnu' });
+    
+    const ok = admin.password_hash ? await bcrypt.compare(password, admin.password_hash) : password === admin.password;
+    if(!ok) return res.status(401).json({ error: 'Mot de passe incorrect' });
+    
+    const session = { type: 'admin', role, name: admin.name || `Admin ${role}` };
+    const snapshot = await buildSnapshot();
+    res.json({ token: signSession(session), session, snapshot });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ error: 'Erreur de connexion' });
+  }
 });
 
-app.get('/api/session', authRequired, (req, res) => {
-  const db = readDb();
-  res.json({ session: req.user, snapshot: buildSnapshot(db) });
+app.get('/api/session', authRequired, async (req, res) => {
+  try {
+    const snapshot = await buildSnapshot();
+    res.json({ session: req.user, snapshot });
+  } catch (error) {
+    console.error('Session error:', error);
+    res.status(500).json({ error: 'Erreur de session' });
+  }
 });
 
 app.post('/api/member/change-password', authRequired, async (req, res) => {

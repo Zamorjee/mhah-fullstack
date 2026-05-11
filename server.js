@@ -934,7 +934,6 @@ app.post('/api/auth/member/login', async (req, res) => {
     res.status(500).json({ error: 'Erreur de connexion' });
   }
 });
-});
 
 app.post('/api/auth/admin/login', async (req, res) => {
   try {

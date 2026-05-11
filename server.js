@@ -253,19 +253,21 @@ async function writeDb(db) {
   try {
     // Update admins
     if (db.admins) {
-      await supabase.from('admins').delete().neq('role', '');
+      console.log('[writeDb] Updating admins...');
+      await runSupabaseQuery(supabase.from('admins').delete().neq('role', ''), 'delete admins');
       const adminsData = Object.entries(db.admins).map(([role, admin]) => ({
         role,
         password_hash: admin.passwordHash,
         name: admin.name
       }));
       if (adminsData.length > 0) {
-        await supabase.from('admins').insert(adminsData);
+        await runSupabaseQuery(supabase.from('admins').insert(adminsData), 'insert admins');
       }
     }
 
     // Update members
     if (db.members) {
+      console.log('[writeDb] Updating members:', db.members.length, 'records');
       await runSupabaseQuery(supabase.from('members').delete().neq('code', ''), 'delete members');
       const membersData = db.members.map(member => ({
         code: member.code,
@@ -286,7 +288,9 @@ async function writeDb(db) {
         notes: member.notes
       }));
       if (membersData.length > 0) {
+        console.log('[writeDb] Inserting members:', membersData.length, 'records');
         await runSupabaseQuery(supabase.from('members').insert(membersData), 'insert members');
+        console.log('[writeDb] Members inserted successfully');
       }
     }
 

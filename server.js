@@ -338,7 +338,7 @@ async function writeDb(db) {
         ref: item.ref,
         order_id: item.orderId,
         payer: item.payer
-      })));
+      }))), 'insert moncash');
     }
 
     // Update zelle
@@ -355,7 +355,7 @@ async function writeDb(db) {
         ref: item.ref,
         sender_name: item.senderName,
         sender_bank: item.senderBank
-      })));
+      }))), 'insert zelle');
     }
 
     // Update cards
@@ -412,7 +412,7 @@ async function writeDb(db) {
         event_id: webhook.eventId,
         type: webhook.type,
         received_at: webhook.receivedAt
-      })));
+      }))), 'insert webhooks');
     }
   } catch (error) {
     console.error('Error writing to database:', error);

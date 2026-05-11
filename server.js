@@ -376,7 +376,7 @@ async function writeDb(db) {
         session_id: item.sessionId,
         order_id: item.orderId,
         paypal_email: item.paypalEmail
-      })));
+      }))), 'insert cards');
     }
 
     // Update pending payments

@@ -27,6 +27,15 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+async function runSupabaseQuery(query, label) {
+  const { data, error } = await query;
+  if (error) {
+    console.error(`Supabase ${label} failed:`, error);
+    throw error;
+  }
+  return data;
+}
+
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 
@@ -257,7 +266,7 @@ async function writeDb(db) {
 
     // Update members
     if (db.members) {
-      await supabase.from('members').delete().neq('code', '');
+      await runSupabaseQuery(supabase.from('members').delete().neq('code', ''), 'delete members');
       const membersData = db.members.map(member => ({
         code: member.code,
         nom: member.nom,
@@ -277,7 +286,7 @@ async function writeDb(db) {
         notes: member.notes
       }));
       if (membersData.length > 0) {
-        await supabase.from('members').insert(membersData);
+        await runSupabaseQuery(supabase.from('members').insert(membersData), 'insert members');
       }
     }
 
@@ -296,8 +305,8 @@ async function writeDb(db) {
 
     // Update chats
     if (db.chats && db.chats.length > 0) {
-      await supabase.from('chats').delete().neq('id', 0);
-      await supabase.from('chats').insert(db.chats.map(chat => ({
+      await runSupabaseQuery(supabase.from('chats').delete().neq('id', 0), 'delete chats');
+      await runSupabaseQuery(supabase.from('chats').insert(db.chats.map(chat => ({
         id: chat.id,
         ch: chat.ch,
         scope: chat.scope,
@@ -305,19 +314,19 @@ async function writeDb(db) {
         role: chat.role,
         msg: chat.msg,
         time: chat.time
-      })));
+      }))), 'insert chats');
     }
 
     // Update requests
     if (db.requests && db.requests.length > 0) {
-      await supabase.from('requests').delete().neq('id', '');
-      await supabase.from('requests').insert(db.requests);
+      await runSupabaseQuery(supabase.from('requests').delete().neq('id', ''), 'delete requests');
+      await runSupabaseQuery(supabase.from('requests').insert(db.requests), 'insert requests');
     }
 
     // Update moncash
     if (db.moncash && db.moncash.length > 0) {
-      await supabase.from('moncash').delete().neq('id', '');
-      await supabase.from('moncash').insert(db.moncash.map(item => ({
+      await runSupabaseQuery(supabase.from('moncash').delete().neq('id', ''), 'delete moncash');
+      await runSupabaseQuery(supabase.from('moncash').insert(db.moncash.map(item => ({
         id: item.id,
         member_code: item.memberCode,
         phone: item.phone,
@@ -334,8 +343,8 @@ async function writeDb(db) {
 
     // Update zelle
     if (db.zelle && db.zelle.length > 0) {
-      await supabase.from('zelle').delete().neq('id', '');
-      await supabase.from('zelle').insert(db.zelle.map(item => ({
+      await runSupabaseQuery(supabase.from('zelle').delete().neq('id', ''), 'delete zelle');
+      await runSupabaseQuery(supabase.from('zelle').insert(db.zelle.map(item => ({
         id: item.id,
         member_code: item.memberCode,
         amount: item.amount,
@@ -351,8 +360,8 @@ async function writeDb(db) {
 
     // Update cards
     if (db.cards && db.cards.length > 0) {
-      await supabase.from('cards').delete().neq('id', '');
-      await supabase.from('cards').insert(db.cards.map(item => ({
+      await runSupabaseQuery(supabase.from('cards').delete().neq('id', ''), 'delete cards');
+      await runSupabaseQuery(supabase.from('cards').insert(db.cards.map(item => ({
         id: item.id,
         member_code: item.memberCode,
         amount: item.amount,
@@ -372,7 +381,7 @@ async function writeDb(db) {
 
     // Update pending payments
     if (db.pendingPayments && Object.keys(db.pendingPayments).length > 0) {
-      await supabase.from('pending_payments').delete().neq('tx_ref', '');
+      await runSupabaseQuery(supabase.from('pending_payments').delete().neq('tx_ref', ''), 'delete pending_payments');
       const pendingData = Object.values(db.pendingPayments).map(payment => ({
         tx_ref: payment.txRef,
         provider: payment.provider,
@@ -397,8 +406,8 @@ async function writeDb(db) {
 
     // Update webhooks
     if (db.webhooks && db.webhooks.length > 0) {
-      await supabase.from('webhooks').delete().neq('event_id', '');
-      await supabase.from('webhooks').insert(db.webhooks.map(webhook => ({
+      await runSupabaseQuery(supabase.from('webhooks').delete().neq('event_id', ''), 'delete webhooks');
+      await runSupabaseQuery(supabase.from('webhooks').insert(db.webhooks.map(webhook => ({
         provider: webhook.provider,
         event_id: webhook.eventId,
         type: webhook.type,

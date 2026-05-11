@@ -443,6 +443,7 @@ function sanitizeMembers(members) {
   return members.map((member) => {
     const clean = Object.assign({}, member);
     delete clean.passwordHash;
+    delete clean.password_hash;
     delete clean.password;
     return clean;
   });
@@ -579,8 +580,10 @@ async function sanitizeIncomingMembers(currentMembers, incomingMembers) {
   return (incomingMembers || []).map((item) => {
     const previous = currentMap.get(item.code) || {};
     const clean = Object.assign({}, previous, item);
+    if (!clean.passwordHash && item.password_hash) clean.passwordHash = item.password_hash;
     if (item.password) clean.passwordHash = hashIfNeeded(item.password);
     delete clean.password;
+    delete clean.password_hash;
     return clean;
   });
 }
@@ -711,35 +714,44 @@ async function retrieveMonCashPayment({ orderId, transactionId }) {
 
 async function buildSnapshot() {
   try {
-    const [membersRes, paymentsRes, chatsRes, requestsRes, moncashRes, zelleRes, cardsRes] = await Promise.all([
-      supabase.from('members').select('*'),
-      supabase.from('payments').select('*'),
-      supabase.from('chats').select('*'),
-      supabase.from('requests').select('*'),
-      supabase.from('moncash').select('*'),
-      supabase.from('zelle').select('*'),
-      supabase.from('cards').select('*')
+    const [admins, members, payments, chats, requests, moncash, zelle, cards, pendingPayments, webhooks] = await Promise.all([
+      getAdmins(),
+      getMembers(),
+      getPayments(),
+      getChats(),
+      getRequests(),
+      getMoncash(),
+      getZelle(),
+      getCards(),
+      getPendingPayments(),
+      getWebhooks()
     ]);
-    
+
     return {
-      members: sanitizeMembers(membersRes.data || []),
-      payments: clone(paymentsRes.data || []),
-      chats: clone(chatsRes.data || []),
-      requests: clone(requestsRes.data || []),
-      moncash: clone(moncashRes.data || []),
-      zelle: clone(zelleRes.data || []),
-      cards: clone(cardsRes.data || [])
+      admins,
+      members,
+      payments,
+      chats,
+      requests,
+      moncash,
+      zelle,
+      cards,
+      pendingPayments,
+      webhooks
     };
   } catch (error) {
     console.error('Error building snapshot:', error);
     return {
+      admins: {},
       members: [],
       payments: [],
       chats: [],
       requests: [],
       moncash: [],
       zelle: [],
-      cards: []
+      cards: [],
+      pendingPayments: {},
+      webhooks: []
     };
   }
 }

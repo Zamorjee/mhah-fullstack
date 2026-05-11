@@ -1001,20 +1001,31 @@ app.post('/api/member/change-password', authRequired, async (req, res) => {
 });
 
 app.post('/api/data/snapshot', authRequired, requireAdmin, async (req, res) => {
-  const snapshot = req.body.snapshot || {};
-  const db = await readDb();
-  
-  if (Array.isArray(snapshot.members)) db.members = await sanitizeIncomingMembers(db.members, snapshot.members);
-  if (Array.isArray(snapshot.payments)) db.payments = snapshot.payments;
-  if (Array.isArray(snapshot.chats)) db.chats = snapshot.chats;
-  if (Array.isArray(snapshot.requests)) db.requests = snapshot.requests;
-  if (Array.isArray(snapshot.moncash)) db.moncash = snapshot.moncash;
-  if (Array.isArray(snapshot.zelle)) db.zelle = snapshot.zelle;
-  if (Array.isArray(snapshot.cards)) db.cards = snapshot.cards;
-  
-  await writeDb(db);
-  const newSnapshot = await buildSnapshot();
-  res.json({ ok: true, snapshot: newSnapshot });
+  try {
+    const snapshot = req.body.snapshot || {};
+    console.log('[snapshot] Admin', req.user.role, 'syncing members:', snapshot.members ? snapshot.members.length : 0);
+    const db = await readDb();
+    
+    if (Array.isArray(snapshot.members)) {
+      console.log('[snapshot] Merging', snapshot.members.length, 'members from client');
+      db.members = await sanitizeIncomingMembers(db.members, snapshot.members);
+    }
+    if (Array.isArray(snapshot.payments)) db.payments = snapshot.payments;
+    if (Array.isArray(snapshot.chats)) db.chats = snapshot.chats;
+    if (Array.isArray(snapshot.requests)) db.requests = snapshot.requests;
+    if (Array.isArray(snapshot.moncash)) db.moncash = snapshot.moncash;
+    if (Array.isArray(snapshot.zelle)) db.zelle = snapshot.zelle;
+    if (Array.isArray(snapshot.cards)) db.cards = snapshot.cards;
+    
+    console.log('[snapshot] Writing to Supabase...');
+    await writeDb(db);
+    console.log('[snapshot] Write successful');
+    const newSnapshot = await buildSnapshot();
+    res.json({ ok: true, snapshot: newSnapshot });
+  } catch (error) {
+    console.error('[snapshot] Error:', error.message, error.details || '');
+    res.status(500).json({ error: error.message || 'Erreur synchronisation' });
+  }
 });
 
 app.post('/api/payments/manual', authRequired, async (req, res) => {

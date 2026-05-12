@@ -23,6 +23,15 @@
     return window.location.protocol !== 'file:' && !!window.location.origin && window.location.origin !== 'null';
   }
 
+  function getApiBaseUrl(){
+    // Si on est sur le domaine officiel, rediriger vers Render
+    if(window.location.origin === 'https://mouvementshaitiauxhaitiens.net'){
+      return 'https://mhah-fullstack.onrender.com';
+    }
+    // Sinon, utiliser le même domaine (pour localhost et render.com)
+    return window.location.origin;
+  }
+
   function getToken(){
     return localStorage.getItem(TOKEN_KEY) || '';
   }
@@ -50,7 +59,9 @@
     const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
     const token = getToken();
     if(token) headers.Authorization = 'Bearer ' + token;
-    const response = await fetch(window.location.origin + path, Object.assign({}, opts, { headers }));
+    const apiBaseUrl = getApiBaseUrl();
+    console.log('[CLIENT] apiRequest: calling', apiBaseUrl + path);
+    const response = await fetch(apiBaseUrl + path, Object.assign({}, opts, { headers }));
     const contentType = response.headers.get('content-type') || '';
     const data = contentType.indexOf('application/json') >= 0 ? await response.json() : await response.text();
     if(!response.ok){

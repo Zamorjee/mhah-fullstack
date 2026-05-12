@@ -4923,6 +4923,10 @@
 
         stripeSessionInProgress = true;
         var apiUrl = window.location.origin;
+        // Si on est sur le domaine officiel, rediriger vers Render
+        if(window.location.origin === 'https://mouvementshaitiauxhaitiens.net'){
+          apiUrl = 'https://mhah-fullstack.onrender.com';
+        }
 
         var member = gd(K.m).find(function (m) {
           return m.code === CU.code;
@@ -4992,6 +4996,10 @@
 
         stripeSessionInProgress = true;
         var apiUrl = window.location.origin;
+        // Si on est sur le domaine officiel, rediriger vers Render
+        if(window.location.origin === 'https://mouvementshaitiauxhaitiens.net'){
+          apiUrl = 'https://mhah-fullstack.onrender.com';
+        }
 
         var member = gd(K.m).find(function (m) {
           return m.code === CU.code;

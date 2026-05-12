@@ -40,15 +40,19 @@ pm2 save
 pm2 startup
 ```
 
-## 5) Render
+## 5. Render avec Domaine Personnalisé
 1. Crée un nouveau **Web Service**
 2. Connecte le repo ou uploade le code
 3. Build command : `npm install`
 4. Start command : `node server.js`
-5. Ajoute les variables de `.env.example` dans Render
-6. Si tu veux que `mouvementshaitiauxhaitiens.net` pointe vers Render, ajoute ce domaine comme custom domain dans Render et configure les DNS chez Namecheap
-7. Mets `APP_BASE_URL` sur `https://mouvementshaitiauxhaitiens.net`
-8. Déclare les webhooks Stripe/PayPal avec cette même URL publique
+5. Dans "Settings" > "Custom Domains", ajoute :
+   - `mouvementshaitiauxhaitiens.net`
+   - `www.mouvementshaitiauxhaitiens.net`
+6. Note les valeurs CNAME fournies par Render
+7. Ajoute les variables de `.env.example` dans Render
+8. Mets `APP_BASE_URL` sur `https://mouvementshaitiauxhaitiens.net`
+9. Configure les DNS chez Namecheap selon le guide `DOMAIN_SETUP_GUIDE.md`
+10. Déclare les webhooks Stripe/PayPal avec cette même URL publique
 
 ## 6) Railway
 1. Nouveau projet

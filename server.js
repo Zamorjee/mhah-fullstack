@@ -903,7 +903,36 @@ async function normalizeDb() {
 app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+
+// Configuration CORS permissive pour le domaine officiel et Render
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permettre les requêtes sans origine (comme les apps mobiles)
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins = [
+      'https://mouvementshaitiauxhaitiens.net',
+      'https://www.mouvementshaitiauxhaitiens.net',
+      'https://mhah-fullstack.onrender.com',
+      'http://localhost:3000',
+      'http://localhost:5000',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5000'
+    ];
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'public')));

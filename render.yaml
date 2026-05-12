@@ -6,6 +6,9 @@ services:
     buildCommand: npm install
     startCommand: node server.js
     autoDeploy: true
+    domains:
+      - mouvementshaitiauxhaitiens.net
+      - www.mouvementshaitiauxhaitiens.net
     envVars:
       - key: PORT
         value: 3000

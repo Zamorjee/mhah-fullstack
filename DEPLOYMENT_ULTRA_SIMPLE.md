@@ -46,8 +46,9 @@ pm2 startup
 3. Build command : `npm install`
 4. Start command : `node server.js`
 5. Ajoute les variables de `.env.example` dans Render
-6. Mets `APP_BASE_URL` sur l’URL publique Render
-7. Déclare les webhooks Stripe/PayPal avec cette même URL publique
+6. Si tu veux que `mouvementshaitiauxhaitiens.net` pointe vers Render, ajoute ce domaine comme custom domain dans Render et configure les DNS chez Namecheap
+7. Mets `APP_BASE_URL` sur `https://mouvementshaitiauxhaitiens.net`
+8. Déclare les webhooks Stripe/PayPal avec cette même URL publique
 
 ## 6) Railway
 1. Nouveau projet

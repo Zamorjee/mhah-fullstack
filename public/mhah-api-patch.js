@@ -24,8 +24,12 @@
   }
 
   function getApiBaseUrl(){
-    // Si on est sur le domaine officiel, rediriger vers Render
-    if(window.location.origin === 'https://mouvementshaitiauxhaitiens.net'){
+    const host = window.location.hostname.toLowerCase();
+    const officialFrontendHosts = [
+      'mouvementshaitiauxhaitiens.net',
+      'www.mouvementshaitiauxhaitiens.net'
+    ];
+    if (officialFrontendHosts.includes(host)) {
       return 'https://mhah-fullstack.onrender.com';
     }
     // Sinon, utiliser le même domaine (pour localhost et render.com)

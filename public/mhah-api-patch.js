@@ -1,4 +1,5 @@
 (function(){
+  console.log('[CLIENT] mhah-api-patch.js loading...');
   const TOKEN_KEY = 'mhah_api_token';
   const SYNC_KEYS = [K.m, K.p, K.c, K.r, K.mc, K.z, K.cb];
   const originalSd = typeof sd === 'function' ? sd : function(){};
@@ -88,26 +89,68 @@
   }
 
   async function syncSnapshotNow(){
-    if(!apiEnabled() || suppressServerSync || !window.CU || CU.type !== 'admin' || !getToken()) return;
+    console.log('[CLIENT] syncSnapshotNow called');
+    if(!apiEnabled()) {
+      console.log('[CLIENT] syncSnapshotNow: API not enabled');
+      return;
+    }
+    if(suppressServerSync) {
+      console.log('[CLIENT] syncSnapshotNow: server sync suppressed');
+      return;
+    }
+    if(!window.CU) {
+      console.log('[CLIENT] syncSnapshotNow: no user context');
+      return;
+    }
+    if(CU.type !== 'admin') {
+      console.log('[CLIENT] syncSnapshotNow: user not admin, type:', CU.type);
+      return;
+    }
+    if(!getToken()) {
+      console.log('[CLIENT] syncSnapshotNow: no token');
+      return;
+    }
+
+    console.log('[CLIENT] syncSnapshotNow: starting sync for admin', CU.role);
     try {
-      await apiRequest('/api/data/snapshot', {
-        method: 'POST',
-        body: JSON.stringify({ snapshot: currentSnapshot() })
+      const snapshot = currentSnapshot();
+      console.log('[CLIENT] syncSnapshotNow: sending snapshot with', {
+        members: snapshot.members ? snapshot.members.length : 0,
+        payments: snapshot.payments ? snapshot.payments.length : 0,
+        chats: snapshot.chats ? snapshot.chats.length : 0
       });
+
+      const response = await apiRequest('/api/data/snapshot', {
+        method: 'POST',
+        body: JSON.stringify({ snapshot: snapshot })
+      });
+
+      console.log('[CLIENT] syncSnapshotNow: sync successful');
     } catch(err){
-      console.warn('Snapshot sync failed', err);
+      console.error('[CLIENT] syncSnapshotNow: sync failed', err);
     }
   }
 
   function scheduleSnapshotSync(){
-    if(syncTimer) clearTimeout(syncTimer);
-    syncTimer = setTimeout(syncSnapshotNow, 500);
+    console.log('[CLIENT] scheduleSnapshotSync called');
+    if(syncTimer) {
+      console.log('[CLIENT] scheduleSnapshotSync: clearing existing timer');
+      clearTimeout(syncTimer);
+    }
+    syncTimer = setTimeout(() => {
+      console.log('[CLIENT] scheduleSnapshotSync: executing sync');
+      syncSnapshotNow();
+    }, 500);
   }
 
   sd = function(k, v){
+    console.log('[CLIENT] sd called with key:', k, 'value:', v);
     originalSd(k, v);
     if(!suppressServerSync && SYNC_KEYS.indexOf(k) >= 0){
+      console.log('[CLIENT] sd: key in SYNC_KEYS, scheduling sync');
       scheduleSnapshotSync();
+    } else {
+      console.log('[CLIENT] sd: key not in SYNC_KEYS or sync suppressed');
     }
   };
 

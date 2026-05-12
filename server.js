@@ -249,26 +249,36 @@ async function readDb() {
   }
 }
 
+async function upsertRecords(table, rows, conflictKey) {
+  if (!Array.isArray(rows) || rows.length === 0) return;
+  console.log('[writeDb] Upserting', rows.length, 'records into', table, 'on conflict', conflictKey);
+  await runSupabaseQuery(supabase.from(table).upsert(rows, { onConflict: conflictKey }), `upsert ${table}`);
+}
+
+function mergeRecordsByKey(existingRecords, incomingRecords, key) {
+  const merged = new Map((Array.isArray(existingRecords) ? existingRecords : []).map(item => [item && item[key], item]));
+  (Array.isArray(incomingRecords) ? incomingRecords : []).forEach(item => {
+    if (!item || item[key] == null) return;
+    const previous = merged.get(item[key]) || {};
+    merged.set(item[key], Object.assign({}, previous, item));
+  });
+  return Array.from(merged.values());
+}
+
 async function writeDb(db) {
   try {
     // Update admins
     if (db.admins) {
-      console.log('[writeDb] Updating admins...');
-      await runSupabaseQuery(supabase.from('admins').delete().neq('role', ''), 'delete admins');
       const adminsData = Object.entries(db.admins).map(([role, admin]) => ({
         role,
         password_hash: admin.passwordHash,
         name: admin.name
       }));
-      if (adminsData.length > 0) {
-        await runSupabaseQuery(supabase.from('admins').insert(adminsData), 'insert admins');
-      }
+      await upsertRecords('admins', adminsData, 'role');
     }
 
     // Update members
     if (db.members) {
-      console.log('[writeDb] Updating members:', db.members.length, 'records');
-      await runSupabaseQuery(supabase.from('members').delete().neq('code', ''), 'delete members');
       const membersData = db.members.map(member => ({
         code: member.code,
         nom: member.nom,
@@ -287,30 +297,25 @@ async function writeDb(db) {
         sexe: member.sexe,
         notes: member.notes
       }));
-      if (membersData.length > 0) {
-        console.log('[writeDb] Inserting members:', membersData.length, 'records');
-        await runSupabaseQuery(supabase.from('members').insert(membersData), 'insert members');
-        console.log('[writeDb] Members inserted successfully');
-      }
+      await upsertRecords('members', membersData, 'code');
     }
 
     // Update payments
     if (db.payments && db.payments.length > 0) {
-      await supabase.from('payments').delete().neq('id', 0);
-      await supabase.from('payments').insert(db.payments.map(payment => ({
+      const paymentsData = db.payments.map(payment => ({
         id: payment.id,
         member_code: payment.memberCode,
         amount: payment.amount,
         date: payment.date,
         type: payment.type,
         note: payment.note
-      })));
+      }));
+      await upsertRecords('payments', paymentsData, 'id');
     }
 
     // Update chats
     if (db.chats && db.chats.length > 0) {
-      await runSupabaseQuery(supabase.from('chats').delete().neq('id', 0), 'delete chats');
-      await runSupabaseQuery(supabase.from('chats').insert(db.chats.map(chat => ({
+      const chatsData = db.chats.map(chat => ({
         id: chat.id,
         ch: chat.ch,
         scope: chat.scope,
@@ -318,19 +323,18 @@ async function writeDb(db) {
         role: chat.role,
         msg: chat.msg,
         time: chat.time
-      }))), 'insert chats');
+      }));
+      await upsertRecords('chats', chatsData, 'id');
     }
 
     // Update requests
     if (db.requests && db.requests.length > 0) {
-      await runSupabaseQuery(supabase.from('requests').delete().neq('id', ''), 'delete requests');
-      await runSupabaseQuery(supabase.from('requests').insert(db.requests), 'insert requests');
+      await upsertRecords('requests', db.requests, 'id');
     }
 
     // Update moncash
     if (db.moncash && db.moncash.length > 0) {
-      await runSupabaseQuery(supabase.from('moncash').delete().neq('id', ''), 'delete moncash');
-      await runSupabaseQuery(supabase.from('moncash').insert(db.moncash.map(item => ({
+      const moncashData = db.moncash.map(item => ({
         id: item.id,
         member_code: item.memberCode,
         phone: item.phone,
@@ -342,13 +346,13 @@ async function writeDb(db) {
         ref: item.ref,
         order_id: item.orderId,
         payer: item.payer
-      }))), 'insert moncash');
+      }));
+      await upsertRecords('moncash', moncashData, 'id');
     }
 
     // Update zelle
     if (db.zelle && db.zelle.length > 0) {
-      await runSupabaseQuery(supabase.from('zelle').delete().neq('id', ''), 'delete zelle');
-      await runSupabaseQuery(supabase.from('zelle').insert(db.zelle.map(item => ({
+      const zelleData = db.zelle.map(item => ({
         id: item.id,
         member_code: item.memberCode,
         amount: item.amount,
@@ -359,13 +363,13 @@ async function writeDb(db) {
         ref: item.ref,
         sender_name: item.senderName,
         sender_bank: item.senderBank
-      }))), 'insert zelle');
+      }));
+      await upsertRecords('zelle', zelleData, 'id');
     }
 
     // Update cards
     if (db.cards && db.cards.length > 0) {
-      await runSupabaseQuery(supabase.from('cards').delete().neq('id', ''), 'delete cards');
-      await runSupabaseQuery(supabase.from('cards').insert(db.cards.map(item => ({
+      const cardsData = db.cards.map(item => ({
         id: item.id,
         member_code: item.memberCode,
         amount: item.amount,
@@ -380,12 +384,12 @@ async function writeDb(db) {
         session_id: item.sessionId,
         order_id: item.orderId,
         paypal_email: item.paypalEmail
-      }))), 'insert cards');
+      }));
+      await upsertRecords('cards', cardsData, 'id');
     }
 
     // Update pending payments
     if (db.pendingPayments && Object.keys(db.pendingPayments).length > 0) {
-      await runSupabaseQuery(supabase.from('pending_payments').delete().neq('tx_ref', ''), 'delete pending_payments');
       const pendingData = Object.values(db.pendingPayments).map(payment => ({
         tx_ref: payment.txRef,
         provider: payment.provider,
@@ -403,20 +407,18 @@ async function writeDb(db) {
         created_at: payment.createdAt,
         status: payment.status
       }));
-      if (pendingData.length > 0) {
-        await supabase.from('pending_payments').insert(pendingData);
-      }
+      await upsertRecords('pending_payments', pendingData, 'tx_ref');
     }
 
     // Update webhooks
     if (db.webhooks && db.webhooks.length > 0) {
-      await runSupabaseQuery(supabase.from('webhooks').delete().neq('event_id', ''), 'delete webhooks');
-      await runSupabaseQuery(supabase.from('webhooks').insert(db.webhooks.map(webhook => ({
+      const webhooksData = db.webhooks.map(webhook => ({
         provider: webhook.provider,
         event_id: webhook.eventId,
         type: webhook.type,
         received_at: webhook.receivedAt
-      }))), 'insert webhooks');
+      }));
+      await upsertRecords('webhooks', webhooksData, 'event_id');
     }
   } catch (error) {
     console.error('Error writing to database:', error);
@@ -586,6 +588,16 @@ async function recordSuccessfulMonCashPayment(txRef, details) {
   delete db.pendingPayments[txRef];
   await writeDb(db);
   return await buildSnapshot();
+}
+
+function mergeRecordsByKey(existingRecords, incomingRecords, key) {
+  const result = new Map((Array.isArray(existingRecords) ? existingRecords : []).map((item) => [item && item[key], item]));
+  (Array.isArray(incomingRecords) ? incomingRecords : []).forEach((item) => {
+    if (!item || item[key] == null) return;
+    const previous = result.get(item[key]) || {};
+    result.set(item[key], Object.assign({}, previous, item));
+  });
+  return Array.from(result.values());
 }
 
 async function sanitizeIncomingMembers(currentMembers, incomingMembers) {
@@ -972,6 +984,7 @@ app.post('/api/auth/admin/login', async (req, res) => {
 
 app.get('/api/session', authRequired, async (req, res) => {
   try {
+    res.set('Cache-Control', 'no-store');
     const snapshot = await buildSnapshot();
     res.json({ session: req.user, snapshot });
   } catch (error) {
@@ -1002,6 +1015,7 @@ app.post('/api/member/change-password', authRequired, async (req, res) => {
 
 app.post('/api/data/snapshot', authRequired, requireAdmin, async (req, res) => {
   try {
+    res.set('Cache-Control', 'no-store');
     const snapshot = req.body.snapshot || {};
     console.log('[snapshot] Admin', req.user.role, 'syncing members:', snapshot.members ? snapshot.members.length : 0);
     const db = await readDb();
@@ -1010,13 +1024,17 @@ app.post('/api/data/snapshot', authRequired, requireAdmin, async (req, res) => {
       console.log('[snapshot] Merging', snapshot.members.length, 'members from client');
       db.members = await sanitizeIncomingMembers(db.members, snapshot.members);
     }
-    if (Array.isArray(snapshot.payments)) db.payments = snapshot.payments;
-    if (Array.isArray(snapshot.chats)) db.chats = snapshot.chats;
-    if (Array.isArray(snapshot.requests)) db.requests = snapshot.requests;
-    if (Array.isArray(snapshot.moncash)) db.moncash = snapshot.moncash;
-    if (Array.isArray(snapshot.zelle)) db.zelle = snapshot.zelle;
-    if (Array.isArray(snapshot.cards)) db.cards = snapshot.cards;
-    
+    if (Array.isArray(snapshot.payments)) db.payments = mergeRecordsByKey(db.payments, snapshot.payments, 'id');
+    if (Array.isArray(snapshot.chats)) db.chats = mergeRecordsByKey(db.chats, snapshot.chats, 'id');
+    if (Array.isArray(snapshot.requests)) db.requests = mergeRecordsByKey(db.requests, snapshot.requests, 'id');
+    if (Array.isArray(snapshot.moncash)) db.moncash = mergeRecordsByKey(db.moncash, snapshot.moncash, 'id');
+    if (Array.isArray(snapshot.zelle)) db.zelle = mergeRecordsByKey(db.zelle, snapshot.zelle, 'id');
+    if (Array.isArray(snapshot.cards)) db.cards = mergeRecordsByKey(db.cards, snapshot.cards, 'id');
+    if (snapshot.pendingPayments && typeof snapshot.pendingPayments === 'object') {
+      db.pendingPayments = Object.assign({}, db.pendingPayments || {}, snapshot.pendingPayments);
+    }
+    if (Array.isArray(snapshot.webhooks)) db.webhooks = mergeRecordsByKey(db.webhooks, snapshot.webhooks, 'eventId');
+
     console.log('[snapshot] Writing to Supabase...');
     await writeDb(db);
     console.log('[snapshot] Write successful');

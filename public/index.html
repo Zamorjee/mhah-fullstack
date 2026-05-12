@@ -4829,10 +4829,16 @@
       if (E("btnOut")) E("btnOut").onclick = doLogout;
       if (E("pDt")) E("pDt").value = new Date().toISOString().split("T")[0];
 
-      // Service Worker pour PWA
+      // Désactiver temporairement le service worker pour éviter les boucles de rafraîchissement
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/sw.js").catch(function (err) {
-          console.log("ServiceWorker registration failed: ", err);
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          registrations.forEach(function (registration) {
+            registration.unregister().catch(function (err) {
+              console.warn('Failed to unregister service worker:', err);
+            });
+          });
+        }).catch(function (err) {
+          console.warn('ServiceWorker cleanup failed:', err);
         });
       }
 
